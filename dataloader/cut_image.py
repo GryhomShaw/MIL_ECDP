@@ -6,16 +6,15 @@ import sys
 sys.path.append('../')
 from config import cfg
 from eic_utils import cp
-import warnings
-warnings.filterwarnings("ignore")
+import pandas as pd
 def work(p):# {{{
-    img_path, out_path, idx, size, scale, threshold = p
+    img_path, out_path, idx, size, scale, threshold,slide = p
 
-    tiff_path = img_path[:-9]+'.tif' #1.tif
+    #tiff_path = img_path[:-9]+'.tif' #1.tif
     mask_size = size // 4
 
     step = mask_size // 2
-
+    print(img_path)
     img = cv2.imread(img_path,0)
     h, w = img.shape[:2]
 
@@ -36,11 +35,11 @@ def work(p):# {{{
             sub_img = img[si: si+mask_size, sj: sj+mask_size]
             # print(tiff_path)
             if np.sum(sub_img) // 255 > sub_img.shape[0] * sub_img.shape[1] * threshold:
-                slide = opsl.OpenSlide(tiff_path)
+                #slide = opsl.OpenSlide(tiff_path)
                 [n,m] = slide.dimensions
                 x = min(scale*si, m - size)
                 y = min(scale*sj, n - size)
-                #print(x,y)
+                print(path,x,y)
                 data['roi'].append([x,y])
                 patch = np.array(slide.read_region((y,x),0,(size,size)).convert('RGB'))
                 patch_name = "{}_{}.jpg".format(x,y)
@@ -62,15 +61,24 @@ def work(p):# {{{
 
 
 def cut(args):
+    df = pd.read_excel(cfg.label_path)
+    labels = df.values
+    m = {}
+    for val in labels:
+        m[val[0]] = val[1]
     params = []
     idx = 0
     for root, dirs, filenames in os.walk(cfg.data_append_path):
         for each_mask in filenames:
-            if '_mask' in each_mask:
+            if '_mask.jpg' in each_mask :
+                name = each_mask.split('_')[0]
+                flag = 'pos' if m[int(name)] == 'Positive' else 'neg'
                 path = os.path.join(root,each_mask) #./EDCP/data_append/1/1_mask.jpg
-                out_path = os.path.join(cfg.patch_data,each_mask.split('_')[0]) #./EDCP_PATCH/1/
+                out_path = os.path.join(cfg.patch_data,flag,name) #./EDCP_PATCH/pos/1/
+                tiff_path =  path[:-9]+'.tif'
+                slide = opsl.OpenSlide(tiff_path)
                 idx+=1
-                params.append([path,out_path,idx,args.patchsize,args.scale,args.threshold])
+                params.append([path,out_path,idx,args.patchsize,args.scale,args.threshold,slide])
 
     #print(idx)
     cp('(#b)total_img:\t{}(#)'.format(idx))

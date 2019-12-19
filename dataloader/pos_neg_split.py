@@ -5,18 +5,15 @@ import shutil
 import sys
 sys.path.append('../')
 from config import cfg
-data_path = cfg.data_appen_path
+data_path = cfg.data_append_path
 xslx_path = cfg.label_path
 
-output_path = {}
-for each in ['pos','neg']:
-    output_path[each] = os.path.join(data_path,each)
-    if not os.path.isdir(output_path[each]):
-        os.makedirs(output_path[each])
 
 df = pd.read_excel(xslx_path)
 labels = df.values
-
+m = {}
+for val in labels:
+    m[val[0]] = val[1]
 tifs = [each for each in os.listdir(data_path) if 'pos' not in each
         and 'neg' not in each]
 
@@ -24,12 +21,12 @@ tifs = [each for each in os.listdir(data_path) if 'pos' not in each
 print(tifs)
 for idx in tifs:
     src = os.path.join(data_path, idx)
-    if labels[int(idx)-1][1] == 'Positive':
-        dst = os.path.join(output_path['pos'])
+    if m[int(idx)] == 'Positive':
+        dst = cfg.data_pos_path
     else :
-        dst = os.path.join(output_path['neg'])
+        dst = cfg.data_neg_path
     shutil.move(src,dst)
-    print(idx, labels[int(idx)-1][1], src, dst)
+    print(idx, m[int(idx)], src, dst)
 
 
 
