@@ -5,9 +5,9 @@ sys.path.append('../')
 from config import cfg
 import pickle
 np.random.seed(233)
-data_pos = os.path.join(cfg.patch_predict,'pos')
-data_neg = os.path.join(cfg.patch_predict,'neg')
-save_path = cfg.rnn_data_split
+data_pos = os.path.join(cfg.patch_data,'pos')
+data_neg = os.path.join(cfg.patch_data,'neg')
+save_path = cfg.data_split
 def train_val_split(path, ratios=[9,1]):
     # list all image except mask
     images = [os.path.join(path, each) for each in os.listdir(path)]    # ./ECDP_PATCH/pos/1

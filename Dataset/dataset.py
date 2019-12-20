@@ -5,6 +5,7 @@ import random
 import cv2
 import torch
 import torch.utils.data as data
+import torchvision.transforms.functional as F
 import numpy as np
 from eic_utils import cp
 
@@ -53,11 +54,22 @@ class MILdataset(data.Dataset):
         self.t_data = [(self.slideIDX[x],self.grid[x],self.targets[self.slideIDX[x]]) for x in idxs]
     def shuffletraindata(self):
         self.t_data = random.sample(self.t_data, len(self.t_data))
+    def getorignimg(self,idxs):
+        images = []
+        names = []
+        targets = []
+        for each in idxs:
+            images.append(cv2.resize(cv2.imread(self.grid[each])[:,:,::-1],(512,512)))
+            names.append(os.path.join(*self.grid[each].split('/')[-2:]).replace('.jpg',''))
+            targets.append(self.targets[self.slideIDX[each]])
+        return np.array(images),np.array(names),np.array(targets)
+
     def __getitem__(self,index):
         if self.mode == 1:
             img_path = self.grid[index]
             img = cv2.imread(img_path)
             img = img[:,:,::-1]
+            #orign_img = F.to_tensor(img)
             if self.size != 224:
                 img = cv2.resize(img,(224,224))
             if self.transform is not None:

@@ -1,9 +1,10 @@
-import sys
 import os
+import sys
 import numpy as np
 import argparse
 import random
 import openslide
+import json
 import PIL.Image as Image
 import torch
 import torch.nn as nn
@@ -15,18 +16,20 @@ import torchvision.models as models
 from Dataset import MILdataset
 from eic_utils import procedure,cp
 from config import cfg
-import json
+from utils.summary import TensorboardSummary 
+
 os.environ["CUDA_VISIBLE_DEVICES"] ="0,1"
+
 def get_args():
     parser = argparse.ArgumentParser(description='ECDP_NCIC')
     parser.add_argument('--val', type=bool, default=True, help="val or not")
-    parser.add_argument('--patch_size', type=int, default=2048, help="size of patch")
+    parser.add_argument('--patch_size', type=int, default=512, help="size of patch")
     parser.add_argument('--output', type=str, default='./train_output', help='name of output file')
     parser.add_argument('--batch_size', type=int, default=512, help='mini-batch size (default: 512)')
     parser.add_argument('--nepochs', type=int, default=100, help='number of epochs')
     parser.add_argument('--workers', default=16, type=int, help='number of data loading workers (default: 4)')
     parser.add_argument('--test_every', default=10, type=int, help='test on val every (default: 10)')
-    parser.add_argument('--k', default=1, type=int, help='top k tiles are assumed to be of the same class as the slide (default: 1, standard MIL)')
+    parser.add_argument('--k', default=2, type=int, help='top k tiles are assumed to be of the same class as the slide (default: 1, standard MIL)')
     return parser.parse_args()
 best_acc = 0
 def main():
@@ -58,7 +61,7 @@ def main():
         #load data
         with open(cfg.data_split) as f :   #
             data = json.load(f)
-        train_dset = MILdataset(data['train_neg'][:20],  args.patch_size, trans)
+        train_dset = MILdataset(data['train_neg'][:14] + data['train_pos'],  args.patch_size, trans)
         train_loader = torch.utils.data.DataLoader(
             train_dset,
             batch_size=args.batch_size, shuffle=False,
@@ -69,7 +72,13 @@ def main():
                 val_dset,
                 batch_size=args.batch_size, shuffle=False,
                 num_workers=args.workers, pin_memory=True)
-
+    with procedure('init tensorboardX'):
+        tensorboard_path = os.path.join(args.output,'tensorboard')
+        if not os.path.isdir(tensorboard_path):
+            os.makedirs(tensorboard_path)
+        summary = TensorboardSummary(tensorboard_path)
+        writer = summary.create_writer()
+    
     #open output file
     fconv = open(os.path.join(args.output,'convergence.csv'), 'w')
     fconv.write('epoch,metric,value\n')
@@ -80,6 +89,8 @@ def main():
         train_dset.setmode(1)
         probs = inference(epoch, train_loader, model)
         topk = group_argtopk(np.array(train_dset.slideIDX), probs, args.k)
+        images, names, labels = train_dset.getorignimg(topk)
+        summary.plot_calsses_pred(writer,images,names,labels,np.array([probs[k] for k in topk ]),args.k,epoch)
         #print([probs[k] for k in topk ])
         train_dset.maketraindata(topk)
         train_dset.shuffletraindata()
