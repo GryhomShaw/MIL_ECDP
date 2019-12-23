@@ -6,11 +6,13 @@ from torchvision.utils import make_grid
 
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 
 
 class TensorboardSummary(object):
-    def __init__(self, path):
+    def __init__(self, path, slides_per_step):
         self.path = path
+        self.slides_per_step = slides_per_step #    每次显示几张图的结果
 
     def create_writer(self):
         return SummaryWriter(log_dir = os.path.join(self.path))
@@ -27,7 +29,7 @@ class TensorboardSummary(object):
         :return: none
         """
         assert images.shape[0] == names.shape[0] == targets.shape[0] == probs.shape[0], print('shape error')
-        deta = 2 * K
+        deta = self.slides_per_step * K
         total = math.ceil(images.shape[0] / deta)
         cur_step = (step % total) * deta
         images = images[cur_step:cur_step + deta, :, :, :]
@@ -45,6 +47,21 @@ class TensorboardSummary(object):
                 ax.set_title("{0}：{1:.1f}\nlabel: {2}".format(names[index],probs[index]*100.0,targets[index]),
                              color = ("green" if(int(probs[index] >= 0.5) == targets[index]) else "red"),fontsize = 5)
         writer.add_figure('predicitions vs targets', fig, step)
+
+    def plot_histogram(self, writer, names, probs, length, step):
+
+        assert len(probs) == length[-1] ,print("shape error")
+        deta = self.slides_per_step
+        total = math.ceil(len(names) / deta)
+        cur_step = (step % total) * deta
+        #sections = np.array([i/10 for i in range(11)]) #   划分区间
+        for i in range(cur_step,min(cur_step + deta,len(length))):
+            cur_start = length[i]
+            cur_end =  length[i + 1]
+            # cuts = pd.cut(probs[cur_start:cur_end],sections)
+            # cuts = dict(cuts.value_counts())
+            # data = np.array([k for k in cuts.values()])
+            writer.add_histogram(names[i],np.array(probs[cur_start:cur_end]),step)
 
 
 

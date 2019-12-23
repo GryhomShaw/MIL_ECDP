@@ -30,6 +30,7 @@ def get_args():
     parser.add_argument('--workers', default=16, type=int, help='number of data loading workers (default: 4)')
     parser.add_argument('--test_every', default=10, type=int, help='test on val every (default: 10)')
     parser.add_argument('--k', default=2, type=int, help='top k tiles are assumed to be of the same class as the slide (default: 1, standard MIL)')
+    parser.add_argument('--dis_slide', default=2, type=int, help='display slides for one step on the tensorboradX')
     return parser.parse_args()
 best_acc = 0
 def main():
@@ -76,7 +77,7 @@ def main():
         tensorboard_path = os.path.join(args.output,'tensorboard')
         if not os.path.isdir(tensorboard_path):
             os.makedirs(tensorboard_path)
-        summary = TensorboardSummary(tensorboard_path)
+        summary = TensorboardSummary(tensorboard_path,args.dis_slide)
         writer = summary.create_writer()
     
     #open output file
@@ -89,8 +90,10 @@ def main():
         train_dset.setmode(1)
         probs = inference(epoch, train_loader, model)
         topk = group_argtopk(np.array(train_dset.slideIDX), probs, args.k)
-        images, names, labels = train_dset.getorignimg(topk)
+        images, names, labels = train_dset.getpatchinfo(topk)
         summary.plot_calsses_pred(writer,images,names,labels,np.array([probs[k] for k in topk ]),args.k,epoch)
+        slidenames, length =train_dset.getslideinfo()
+        summary.plot_histogram(writer,slidenames, probs, length, epoch)
         #print([probs[k] for k in topk ])
         train_dset.maketraindata(topk)
         train_dset.shuffletraindata()

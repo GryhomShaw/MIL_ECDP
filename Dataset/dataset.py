@@ -17,6 +17,7 @@ class MILdataset(data.Dataset):
         slideIDX = []
         slidenames = []
         targets = []
+        slideLen = [0]
         idx = 0
         for each_file in data_path:
             slidenames.append(each_file.split('/')[-1])
@@ -24,6 +25,7 @@ class MILdataset(data.Dataset):
                 targets.append(1)
             else:
                 targets.append(0)
+            slideLen.append(slideLen[-1] + len(os.listdir(each_file)))
             for each_patch in os.listdir(each_file):
                 img_path = os.path.join(each_file,each_patch)
                 grid.append(img_path)
@@ -32,6 +34,7 @@ class MILdataset(data.Dataset):
             idx += 1
             cp('(#g)index: {}(#)\t(#r)name: {}(#)\t(#y)len: {}(#)'.format(idx,each_file.split('/')[-1],len(os.listdir(each_file))))
         cp('(#g)total: {}(#)'.format(len(grid)))
+        print(slideLen)
 
         assert len(targets) == len(slidenames) , print("targets and names not match")
         assert len(slideIDX) == len(grid), print("idx and mask not match")
@@ -43,6 +46,7 @@ class MILdataset(data.Dataset):
         self.slideIDX = slideIDX
         self.transform = transform
         self.mode = None
+        self.slideLen = slideLen#   patches for each slide
 
         # self.mult = lib['mult']
         # self.size = int(np.round(224*lib['mult']))
@@ -54,7 +58,7 @@ class MILdataset(data.Dataset):
         self.t_data = [(self.slideIDX[x],self.grid[x],self.targets[self.slideIDX[x]]) for x in idxs]
     def shuffletraindata(self):
         self.t_data = random.sample(self.t_data, len(self.t_data))
-    def getorignimg(self,idxs):
+    def getpatchinfo(self,idxs):
         images = []
         names = []
         targets = []
@@ -62,7 +66,9 @@ class MILdataset(data.Dataset):
             images.append(cv2.resize(cv2.imread(self.grid[each])[:,:,::-1],(512,512)))
             names.append(os.path.join(*self.grid[each].split('/')[-2:]).replace('.jpg',''))
             targets.append(self.targets[self.slideIDX[each]])
-        return np.array(images),np.array(names),np.array(targets)
+        return np.array(images), np.array(names), np.array(targets)
+    def getslideinfo(self):
+        return self.slidenames, self.slideLen
 
     def __getitem__(self,index):
         if self.mode == 1:
