@@ -105,7 +105,6 @@ def work(args):
                     cp('(#y)save_path:\t{}(#)'.format(patch_path))
                 if sj != j:
                     break
-
             if si != i:
                 break
         json_path = output_mask_path[:-9] + '_mask.json'
