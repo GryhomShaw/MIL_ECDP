@@ -49,18 +49,10 @@ class TensorboardSummary(object):
         writer.add_figure('predicitions vs targets', fig, step)
 
     def plot_histogram(self, writer, names, probs, length, step):
-
         assert len(probs) == length[-1] ,print("shape error")
-        deta = self.slides_per_step
-        total = math.ceil(len(names) / deta)
-        cur_step = (step % total) * deta
-        #sections = np.array([i/10 for i in range(11)]) #   划分区间
-        for i in range(cur_step,min(cur_step + deta,len(length))):
+        for i in range(len(length)-1):
             cur_start = length[i]
             cur_end =  length[i + 1]
-            # cuts = pd.cut(probs[cur_start:cur_end],sections)
-            # cuts = dict(cuts.value_counts())
-            # data = np.array([k for k in cuts.values()])
             writer.add_histogram(names[i],np.array(probs[cur_start:cur_end]),step)
 
 
