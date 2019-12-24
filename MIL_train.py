@@ -1,5 +1,6 @@
 import os
 import sys
+import time
 import numpy as np
 import argparse
 import random
@@ -16,8 +17,8 @@ import torchvision.models as models
 from Dataset import MILdataset
 from eic_utils import procedure,cp
 from config import cfg
-from utils.summary import TensorboardSummary 
-
+from utils.summary import TensorboardSummary
+from utils.average import AverageMeter, ProgressMeter
 os.environ["CUDA_VISIBLE_DEVICES"] ="0,1"
 
 def get_args():
@@ -98,7 +99,7 @@ def main():
         train_dset.maketraindata(topk)
         train_dset.shuffletraindata()
         train_dset.setmode(2)
-        loss = train(epoch, train_loader, model, criterion, optimizer)
+        loss = train(epoch, train_loader, model, criterion, optimizer, writer)
         cp('(#r)Training(#)\t(#b)Epoch: [{}/{}](#)\t(#g)Loss:{}(#)'.format(epoch+1, args.nepochs, loss))
         fconv = open(os.path.join(args.output, 'convergence.csv'), 'a')
         fconv.write('{},loss,{}\n'.format(epoch+1,loss))
@@ -142,10 +143,17 @@ def inference(run, loader, model):
             probs[i*args.batch_size:i*args.batch_size+input.size(0)] = output.detach()[:,1].clone()
     return probs.cpu().numpy()
 
-def train(run, loader, model, criterion, optimizer):
+def train(run, loader, model, criterion, optimizer, writer):
+    losses = AverageMeter('Loss', ':.4f')
+    batch_time = AverageMeter('Time', ':6.3f')
+    data_time = AverageMeter('Data', ':6.3f')
+    progress = ProgressMeter(len(loader), [batch_time, data_time, losses],
+                             prefix=cp.trans("(#b)[TRN](#) Epoch: [{}]".format(run)))
     model.train()
     running_loss = 0.
+    end = time.time()
     for i, (input, target) in enumerate(loader):
+        data_time.update(time.time() - end)
         input = input.cuda()
         target = target.cuda()
         output = model(input)
@@ -153,7 +161,11 @@ def train(run, loader, model, criterion, optimizer):
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
+        batch_time.update(time.time() - end)
+        losses.update(loss.item(),input.size(0))
         running_loss += loss.item()*input.size(0)
+        progress.display(i)
+        writer.add_scalar('train/loss',loss.item(),run * len(loader) + i)
     return running_loss/len(loader.dataset)
 
 def calc_err(pred,real):
