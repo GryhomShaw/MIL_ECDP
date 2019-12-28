@@ -36,7 +36,7 @@ class TensorboardSummary(object):
         names = names[cur_step:cur_step + deta]
         targets = targets[cur_step: cur_step + deta]
         probs = probs[cur_step:cur_step + deta]
-        fig = plt.figure()
+        fig = plt.figure(figsize= (200,20))
         per_row = images.shape[0] // K
         print(images.shape[0], per_row, K)
         for idx in range(per_row):
@@ -45,9 +45,8 @@ class TensorboardSummary(object):
                 ax = fig.add_subplot(per_row,K,index+1,xticks=[],yticks=[])
                 plt.imshow(images[index])
                 ax.set_title("{0}：{1:.1f}\nlabel: {2}".format(names[index],probs[index]*100.0,targets[index]),
-                             color = ("green" if(int(probs[index] >= 0.5) == targets[index]) else "red"),fontsize = 5)
+                             color = ("green" if(int(probs[index] >= 0.5) == targets[index]) else "red"),fontsize = 7)
         writer.add_figure('predicitions vs targets', fig, step)
-
     def plot_histogram(self, writer, names, probs, length, step):
         assert len(probs) == length[-1] ,print("shape error")
         for i in range(len(length)-1):

@@ -30,7 +30,7 @@ def get_args():
     parser.add_argument('--nepochs', type=int, default=100, help='number of epochs')
     parser.add_argument('--workers', default=16, type=int, help='number of data loading workers (default: 4)')
     parser.add_argument('--test_every', default=10, type=int, help='test on val every (default: 10)')
-    parser.add_argument('--k', default=2, type=int, help='top k tiles are assumed to be of the same class as the slide (default: 1, standard MIL)')
+    parser.add_argument('--k', default=10, type=int, help='top k tiles are assumed to be of the same class as the slide (default: 1, standard MIL)')
     parser.add_argument('--dis_slide', default=2, type=int, help='display slides for one step on the tensorboradX')
     return parser.parse_args()
 best_acc = 0
@@ -137,7 +137,8 @@ def inference(run, loader, model):
     with torch.no_grad():
         for i, input in enumerate(loader):
             #print('Inference\tEpoch: [{}/{}]\tBatch: [{}/{}]'.format(run+1, args.nepochs, i+1, len(loader)))
-            cp('(#y)Inference\t(#)(#b)Epoch:[{}/{}]\t(#)(#g)Batch: [{}/{}](#)'.format(run+1, args.nepochs, i+1, len(loader)))
+            if (i+1) % 50 == 0:
+                cp('(#y)Inference\t(#)(#b)Epoch:[{}/{}]\t(#)(#g)Batch: [{}/{}](#)'.format(run+1, args.nepochs, i+1, len(loader)))
             input = input.cuda()
             output = F.softmax(model(input), dim=1)
             probs[i*args.batch_size:i*args.batch_size+input.size(0)] = output.detach()[:,1].clone()

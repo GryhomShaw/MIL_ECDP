@@ -10,13 +10,14 @@ class Config:
     data_split = os.path.join(root, 'dataloader/train_val_split.json')
     label_path = os.path.join(root,'dataloader/HEROHE_HER2_STATUS.xlsx')
     patch_data = os.path.join(root,'Patch')
+    patch_overlap = os.path.join(data_path, 'overlap_count')
 
     #MIL_test
     patch_predict = os.path.join(root,'Predict')
     rnn_data_split = os.path.join(root,'dataloader/rnn_data_split.json')
+    color_img_path = os.path.join(patch_predict,'color')
 
-
-    weights = 0.5 # 正负比(默认0.5)
+    weights = 0.8 # 正负比(默认0.5)
     mean = [0.5, 0.5, 0.5]
     std = [0.1, 0.1, 0.1]
 
